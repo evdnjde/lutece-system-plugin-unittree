@@ -34,6 +34,7 @@
 package fr.paris.lutece.plugins.unittree.business.unit;
 
 import fr.paris.lutece.plugins.unittree.service.UnitTreePlugin;
+import fr.paris.lutece.plugins.unittree.service.cache.UnittreeCacheService;
 import fr.paris.lutece.portal.service.plugin.Plugin;
 import fr.paris.lutece.portal.service.plugin.PluginService;
 import fr.paris.lutece.portal.service.spring.SpringContextService;
@@ -52,6 +53,7 @@ public final class UnitHome
     private static final String BEAN_UNIT_DAO = "unittree.unitDAO";
     private static Plugin _plugin = PluginService.getPlugin( UnitTreePlugin.PLUGIN_NAME );
     private static IUnitDAO _dao = SpringContextService.getBean( BEAN_UNIT_DAO );
+    private static UnittreeCacheService _cache = SpringContextService.getBean( "unittree.cacheService" );
 
     /**
      * Private constructor
@@ -119,7 +121,7 @@ public final class UnitHome
     }
 
     /**
-     * Find all ids users
+     * Find all ids usersunittree_unit
      * 
      * @return a list of ids user
      */
@@ -149,7 +151,9 @@ public final class UnitHome
      */
     public static int create( Unit unit )
     {
-        return _dao.insert( unit, _plugin );
+        int id = _dao.insert( unit, _plugin );
+        _cache.resetCache();
+        return id;
     }
 
     /**
@@ -161,6 +165,7 @@ public final class UnitHome
     public static void remove( int nIdUnit )
     {
         _dao.remove( nIdUnit, _plugin );
+        _cache.resetCache( );
     }
 
     /**
@@ -184,7 +189,17 @@ public final class UnitHome
      */
     public static List<Unit> getDirectSubUnits( int nIdUnit )
     {
-        return _dao.getSubUnits( nIdUnit, _plugin );
+        String subUnitCacheKey = _cache.getUnitByParentCacheKey( nIdUnit );
+        @SuppressWarnings( "unchecked" )
+        List<Unit> listUnits = ( List<Unit> ) _cache.getFromCache( subUnitCacheKey );
+
+        if( listUnits == null )
+        {
+            listUnits = _dao.getSubUnits( nIdUnit, _plugin );
+            _cache.putInCache( subUnitCacheKey, listUnits );
+        }
+
+        return listUnits;
     }
 
     /**
@@ -196,8 +211,18 @@ public final class UnitHome
      */
     public static Set<Integer> getAllSubUnitsId( int nIdUnit )
     {
+
+        String subUnitCacheKey = _cache.getUnitByParentCacheKey( nIdUnit );
+        @SuppressWarnings( "unchecked" )
+        List<Unit> listUnits = ( List<Unit> ) _cache.getFromCache( subUnitCacheKey );
+
+        if( listUnits == null )
+        {
+            listUnits = _dao.getSubUnits( nIdUnit, _plugin );
+            _cache.putInCache( subUnitCacheKey, listUnits );
+        }
+
         Set<Integer> setResult = new HashSet<>( );
-        List<Unit> listUnits = _dao.getSubUnits( nIdUnit, _plugin );
         for ( Unit unit : listUnits )
         {
             setResult.add( unit.getIdUnit( ) );
@@ -239,6 +264,7 @@ public final class UnitHome
     public static void update( Unit unit )
     {
         _dao.update( unit, _plugin );
+        _cache.resetCache();
     }
 
     /**
@@ -289,5 +315,6 @@ public final class UnitHome
     public static void updateParent( int nIdUnitToMove, int nIdNewParent )
     {
         _dao.updateParent( nIdUnitToMove, nIdNewParent, _plugin );
+        _cache.resetCache( );
     }
 }

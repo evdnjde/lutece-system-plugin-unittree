@@ -34,6 +34,9 @@
     <bean id="unittree.actionService"
         class="fr.paris.lutece.plugins.unittree.service.action.ActionService" />
 
+    <!-- Cache -->
+    <bean id="unittree.cacheService" class="fr.paris.lutece.plugins.unittree.service.cache.UnittreeCacheService" init-method="initCache" />
+
     <!-- Actions -->
     <bean id="unittree.unitAction"
         class="fr.paris.lutece.plugins.unittree.business.action.UnitAction"
